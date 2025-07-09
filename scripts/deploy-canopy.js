@@ -1,139 +1,141 @@
-const { ethers } = require("hardhat")
+const hre = require("hardhat")
 
 async function main() {
-  console.log("🌿 Deploying LUMIN Smart Contracts to Canopy Network...")
+  console.log("🌿 Deploying LUMIN contracts to Canopy Network...")
 
-  // Get deployer account
-  const [deployer] = await ethers.getSigners()
+  // Get the deployer account
+  const [deployer] = await hre.ethers.getSigners()
   console.log("Deploying contracts with account:", deployer.address)
   console.log("Account balance:", (await deployer.getBalance()).toString())
 
   // Deploy LUM Token
   console.log("\n📄 Deploying LUM Token...")
-  const LumToken = await ethers.getContractFactory("LumToken")
+  const LumToken = await hre.ethers.getContractFactory("LumToken")
   const lumToken = await LumToken.deploy()
   await lumToken.deployed()
   console.log("✅ LUM Token deployed to:", lumToken.address)
 
-  // Deploy NFT Contract
+  // Deploy LUM NFT
   console.log("\n🎨 Deploying LUM NFT...")
-  const LumNFT = await ethers.getContractFactory("LumNFT")
+  const LumNFT = await hre.ethers.getContractFactory("LumNFT")
   const lumNFT = await LumNFT.deploy(lumToken.address)
   await lumNFT.deployed()
   console.log("✅ LUM NFT deployed to:", lumNFT.address)
 
-  // Deploy Timelock Controller for DAO
-  console.log("\n⏰ Deploying Timelock Controller...")
-  const TimelockController = await ethers.getContractFactory("TimelockController")
-  const timelock = await TimelockController.deploy(
-    86400, // 1 day delay
-    [deployer.address], // proposers
-    [deployer.address], // executors
-    deployer.address, // admin
-  )
-  await timelock.deployed()
-  console.log("✅ Timelock Controller deployed to:", timelock.address)
-
-  // Deploy DAO
+  // Deploy LUM DAO
   console.log("\n🏛️ Deploying LUM DAO...")
-  const LumDAO = await ethers.getContractFactory("LumDAO")
-  const lumDAO = await LumDAO.deploy(
-    lumToken.address, // voting token
-    timelock.address, // timelock
-    lumToken.address, // LUM token for treasury
-  )
+  const LumDAO = await hre.ethers.getContractFactory("LumDAO")
+  const lumDAO = await LumDAO.deploy(lumToken.address, lumNFT.address)
   await lumDAO.deployed()
   console.log("✅ LUM DAO deployed to:", lumDAO.address)
 
-  // Setup initial configuration
-  console.log("\n⚙️ Setting up initial configuration...")
+  // Set up permissions
+  console.log("\n🔧 Setting up permissions...")
 
-  // Fund DAO treasury with initial tokens
-  const initialTreasuryAmount = ethers.utils.parseEther("100000") // 100k LUM
-  await lumToken.transfer(lumDAO.address, initialTreasuryAmount)
-  console.log("✅ Funded DAO treasury with 100k LUM tokens")
+  // Grant minter role to NFT contract
+  await lumToken.grantRole(await lumToken.MINTER_ROLE(), lumNFT.address)
+  console.log("✅ Granted minter role to NFT contract")
 
-  // Create some sample NFTs for testing
-  console.log("\n🎯 Creating sample NFTs...")
+  // Grant minter role to DAO contract
+  await lumToken.grantRole(await lumToken.MINTER_ROLE(), lumDAO.address)
+  console.log("✅ Granted minter role to DAO contract")
 
-  // Grade 5 Achievement NFT
-  await lumNFT.mintNFT(
-    deployer.address,
-    2, // Badge category
-    2, // Epic rarity
-    "Grade 5 Achievement",
-    "Milestone achievement for completing Grade 5",
-    ethers.utils.parseEther("3000"),
-    5, // Grade utility
-    0, // No duration
+  // Set NFT contract in token contract
+  await lumToken.setNFTContract(lumNFT.address)
+  console.log("✅ Set NFT contract in token contract")
+
+  // Initialize some test data
+  console.log("\n🧪 Initializing test data...")
+
+  // Mint some initial tokens to deployer for testing
+  await lumToken.mint(deployer.address, hre.ethers.utils.parseEther("10000"))
+  console.log("✅ Minted 10,000 LUM tokens to deployer")
+
+  // Create a test proposal in DAO
+  await lumDAO.createProposal(
+    "Initial Treasury Funding",
+    "Allocate initial funds for game development and rewards",
+    hre.ethers.utils.parseEther("5000"),
   )
+  console.log("✅ Created initial DAO proposal")
 
-  // Grade 10 Legendary NFT
-  await lumNFT.mintNFT(
-    deployer.address,
-    2, // Badge category
-    3, // Legendary rarity
-    "Legendary Master",
-    "Ultimate achievement for completing Grade 10",
-    ethers.utils.parseEther("6000"),
-    10, // Grade utility
-    0, // No duration
-  )
+  // Verify contracts on Canopy Network (if block explorer is available)
+  if (hre.network.name !== "hardhat" && hre.network.name !== "localhost") {
+    console.log("\n🔍 Verifying contracts...")
 
-  console.log("✅ Created sample achievement NFTs")
+    try {
+      await hre.run("verify:verify", {
+        address: lumToken.address,
+        constructorArguments: [],
+      })
+      console.log("✅ LUM Token verified")
+    } catch (error) {
+      console.log("⚠️ LUM Token verification failed:", error.message)
+    }
 
-  // Display deployment summary for Canopy Network
-  console.log("\n🎉 LUMIN Canopy Network Deployment Complete!")
-  console.log("=".repeat(60))
-  console.log("🌿 Network: Canopy Network")
-  console.log("📄 LUM Token:", lumToken.address)
-  console.log("🎨 LUM NFT:", lumNFT.address)
-  console.log("⏰ Timelock:", timelock.address)
-  console.log("🏛️ LUM DAO:", lumDAO.address)
-  console.log("=".repeat(60))
+    try {
+      await hre.run("verify:verify", {
+        address: lumNFT.address,
+        constructorArguments: [lumToken.address],
+      })
+      console.log("✅ LUM NFT verified")
+    } catch (error) {
+      console.log("⚠️ LUM NFT verification failed:", error.message)
+    }
 
-  // Save deployment addresses for frontend
+    try {
+      await hre.run("verify:verify", {
+        address: lumDAO.address,
+        constructorArguments: [lumToken.address, lumNFT.address],
+      })
+      console.log("✅ LUM DAO verified")
+    } catch (error) {
+      console.log("⚠️ LUM DAO verification failed:", error.message)
+    }
+  }
+
+  // Save deployment addresses
   const deploymentInfo = {
     network: "canopy",
-    chainId: 1, // Update with actual Canopy chain ID
-    lumToken: lumToken.address,
-    lumNFT: lumNFT.address,
-    timelock: timelock.address,
-    lumDAO: lumDAO.address,
+    chainId: hre.network.config.chainId,
+    contracts: {
+      LumToken: lumToken.address,
+      LumNFT: lumNFT.address,
+      LumDAO: lumDAO.address,
+    },
     deployer: deployer.address,
-    deployedAt: new Date().toISOString(),
+    deploymentTime: new Date().toISOString(),
   }
 
-  console.log("\n📋 Canopy Deployment Info:")
-  console.log(JSON.stringify(deploymentInfo, null, 2))
+  const fs = require("fs")
+  const path = require("path")
 
-  // Verify contracts are working
-  console.log("\n🔍 Verifying Canopy deployment...")
-  const tokenName = await lumToken.name()
-  const tokenSymbol = await lumToken.symbol()
-  const totalSupply = await lumToken.totalSupply()
-
-  console.log(`✅ Token: ${tokenName} (${tokenSymbol})`)
-  console.log(`✅ Total Supply: ${ethers.utils.formatEther(totalSupply)} LUM`)
-
-  const nftName = await lumNFT.name()
-  const nftSymbol = await lumNFT.symbol()
-  console.log(`✅ NFT: ${nftName} (${nftSymbol})`)
-
-  console.log("\n🌿 LUMIN is ready on Canopy Network!")
-
-  // Return addresses for use in other scripts
-  return {
-    lumToken: lumToken.address,
-    lumNFT: lumNFT.address,
-    timelock: timelock.address,
-    lumDAO: lumDAO.address,
+  // Create deployments directory if it doesn't exist
+  const deploymentsDir = path.join(__dirname, "../deployments")
+  if (!fs.existsSync(deploymentsDir)) {
+    fs.mkdirSync(deploymentsDir)
   }
+
+  // Save deployment info
+  fs.writeFileSync(path.join(deploymentsDir, "canopy.json"), JSON.stringify(deploymentInfo, null, 2))
+
+  console.log("\n🎉 Deployment completed successfully!")
+  console.log("📋 Contract addresses:")
+  console.log("   LUM Token:", lumToken.address)
+  console.log("   LUM NFT:", lumNFT.address)
+  console.log("   LUM DAO:", lumDAO.address)
+  console.log("\n💾 Deployment info saved to deployments/canopy.json")
+
+  console.log("\n🔗 Next steps:")
+  console.log("1. Update frontend contract addresses in components/web3-integration.tsx")
+  console.log("2. Test the contracts with the game interface")
+  console.log("3. Set up monitoring and analytics")
+  console.log("4. Configure game rewards and NFT minting")
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error("❌ Canopy deployment failed:", error)
+    console.error("❌ Deployment failed:", error)
     process.exit(1)
   })

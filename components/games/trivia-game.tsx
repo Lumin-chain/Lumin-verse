@@ -1,198 +1,330 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Timer, RotateCcw, CheckCircle, Zap, Brain } from "lucide-react"
+import { useGameLevels } from "@/hooks/use-game-levels"
+import { useSound } from "@/hooks/use-sound"
 
 interface TriviaGameProps {
+  level: number
   onComplete: (score: number, timeElapsed: number) => void
+  onBack: () => void
 }
 
 interface Question {
-  id: number
   question: string
   options: string[]
   correctAnswer: number
-  difficulty: "Easy" | "Medium" | "Hard"
   category: string
+  difficulty: string
 }
 
-export default function TriviaGame({ onComplete }: TriviaGameProps) {
-  const [questions] = useState<Question[]>([
-    {
-      id: 1,
-      question: "What is the time complexity of binary search?",
-      options: ["O(n)", "O(log n)", "O(n²)", "O(1)"],
-      correctAnswer: 1,
-      difficulty: "Easy",
-      category: "Computer Science",
-    },
-    {
-      id: 2,
-      question: "Which planet is known as the Red Planet?",
-      options: ["Venus", "Mars", "Jupiter", "Saturn"],
-      correctAnswer: 1,
-      difficulty: "Easy",
-      category: "Science",
-    },
-    {
-      id: 3,
-      question: "What does 'HTTP' stand for?",
-      options: [
-        "HyperText Transfer Protocol",
-        "High Tech Transfer Protocol",
-        "Home Tool Transfer Protocol",
-        "Hyper Transfer Text Protocol",
-      ],
-      correctAnswer: 0,
-      difficulty: "Medium",
-      category: "Technology",
-    },
-    {
-      id: 4,
-      question: "In which year was Bitcoin created?",
-      options: ["2008", "2009", "2010", "2007"],
-      correctAnswer: 1,
-      difficulty: "Medium",
-      category: "Cryptocurrency",
-    },
-    {
-      id: 5,
-      question: "What is the maximum supply of Bitcoin?",
-      options: ["21 million", "100 million", "50 million", "Unlimited"],
-      correctAnswer: 0,
-      difficulty: "Hard",
-      category: "Cryptocurrency",
-    },
-    {
-      id: 6,
-      question: "Which sorting algorithm has the best average-case time complexity?",
-      options: ["Bubble Sort", "Quick Sort", "Merge Sort", "Selection Sort"],
-      correctAnswer: 2,
-      difficulty: "Hard",
-      category: "Computer Science",
-    },
-    {
-      id: 7,
-      question: "What is the chemical symbol for Gold?",
-      options: ["Go", "Gd", "Au", "Ag"],
-      correctAnswer: 2,
-      difficulty: "Medium",
-      category: "Science",
-    },
-    {
-      id: 8,
-      question: "Which blockchain consensus mechanism does Ethereum 2.0 use?",
-      options: ["Proof of Work", "Proof of Stake", "Delegated Proof of Stake", "Proof of Authority"],
-      correctAnswer: 1,
-      difficulty: "Hard",
-      category: "Cryptocurrency",
-    },
-  ])
+export default function TriviaGame({ level, onComplete, onBack }: TriviaGameProps) {
+  const { getLevelConfig } = useGameLevels()
+  const { playSound } = useSound()
+  const config = getLevelConfig(level)
 
+  const [questions, setQuestions] = useState<Question[]>([])
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
   const [correctAnswers, setCorrectAnswers] = useState(0)
-  const [streak, setStreak] = useState(0)
-  const [maxStreak, setMaxStreak] = useState(0)
   const [timeElapsed, setTimeElapsed] = useState(0)
   const [questionTimeLeft, setQuestionTimeLeft] = useState(30)
-  const [isComplete, setIsComplete] = useState(false)
+  const [isGameActive, setIsGameActive] = useState(false)
+  const [gameCompleted, setGameCompleted] = useState(false)
+  const [score, setScore] = useState(0)
   const [showAnswer, setShowAnswer] = useState(false)
-  const [gameStarted, setGameStarted] = useState(false)
+  const [hintsUsed, setHintsUsed] = useState(0)
 
-  const currentQuestion = questions[currentQuestionIndex]
-  const totalQuestions = questions.length
+  // Question database organized by difficulty and category
+  const questionDatabase = {
+    space: {
+      easy: [
+        {
+          question: "What is the closest planet to the Sun?",
+          options: ["Venus", "Mercury", "Earth", "Mars"],
+          correctAnswer: 1,
+          category: "Space",
+          difficulty: "Easy",
+        },
+        {
+          question: "How many moons does Earth have?",
+          options: ["0", "1", "2", "3"],
+          correctAnswer: 1,
+          category: "Space",
+          difficulty: "Easy",
+        },
+        {
+          question: "What is the largest planet in our solar system?",
+          options: ["Saturn", "Jupiter", "Neptune", "Uranus"],
+          correctAnswer: 1,
+          category: "Space",
+          difficulty: "Easy",
+        },
+      ],
+      medium: [
+        {
+          question: "What is the name of the galaxy that contains our solar system?",
+          options: ["Andromeda", "Milky Way", "Whirlpool", "Sombrero"],
+          correctAnswer: 1,
+          category: "Space",
+          difficulty: "Medium",
+        },
+        {
+          question: "Which planet has the most moons?",
+          options: ["Jupiter", "Saturn", "Uranus", "Neptune"],
+          correctAnswer: 1,
+          category: "Space",
+          difficulty: "Medium",
+        },
+        {
+          question: "What is the speed of light in a vacuum?",
+          options: ["299,792,458 m/s", "300,000,000 m/s", "186,000 mph", "150,000,000 km/s"],
+          correctAnswer: 0,
+          category: "Space",
+          difficulty: "Medium",
+        },
+      ],
+      hard: [
+        {
+          question: "What is the Schwarzschild radius of a black hole?",
+          options: ["Event horizon", "Photon sphere", "Ergosphere", "Singularity"],
+          correctAnswer: 0,
+          category: "Space",
+          difficulty: "Hard",
+        },
+        {
+          question: "Which spacecraft was the first to leave the solar system?",
+          options: ["Voyager 1", "Voyager 2", "Pioneer 10", "Pioneer 11"],
+          correctAnswer: 0,
+          category: "Space",
+          difficulty: "Hard",
+        },
+      ],
+    },
+    science: {
+      easy: [
+        {
+          question: "What is the chemical symbol for water?",
+          options: ["H2O", "CO2", "O2", "H2"],
+          correctAnswer: 0,
+          category: "Science",
+          difficulty: "Easy",
+        },
+        {
+          question: "What gas do plants absorb from the atmosphere?",
+          options: ["Oxygen", "Nitrogen", "Carbon Dioxide", "Hydrogen"],
+          correctAnswer: 2,
+          category: "Science",
+          difficulty: "Easy",
+        },
+      ],
+      medium: [
+        {
+          question: "What is the atomic number of carbon?",
+          options: ["4", "6", "8", "12"],
+          correctAnswer: 1,
+          category: "Science",
+          difficulty: "Medium",
+        },
+        {
+          question: "What type of bond holds water molecules together?",
+          options: ["Ionic", "Covalent", "Hydrogen", "Metallic"],
+          correctAnswer: 2,
+          category: "Science",
+          difficulty: "Medium",
+        },
+      ],
+      hard: [
+        {
+          question: "What is the half-life of Carbon-14?",
+          options: ["5,730 years", "1,600 years", "24,000 years", "4.5 billion years"],
+          correctAnswer: 0,
+          category: "Science",
+          difficulty: "Hard",
+        },
+      ],
+    },
+    technology: {
+      easy: [
+        {
+          question: "What does 'WWW' stand for?",
+          options: ["World Wide Web", "World Wide Wire", "Web Wide World", "Wide World Web"],
+          correctAnswer: 0,
+          category: "Technology",
+          difficulty: "Easy",
+        },
+        {
+          question: "What does 'CPU' stand for?",
+          options: [
+            "Computer Processing Unit",
+            "Central Processing Unit",
+            "Core Processing Unit",
+            "Central Program Unit",
+          ],
+          correctAnswer: 1,
+          category: "Technology",
+          difficulty: "Easy",
+        },
+      ],
+      medium: [
+        {
+          question: "What programming language is known for blockchain development?",
+          options: ["Python", "JavaScript", "Solidity", "Java"],
+          correctAnswer: 2,
+          category: "Technology",
+          difficulty: "Medium",
+        },
+        {
+          question: "What does 'API' stand for?",
+          options: [
+            "Application Programming Interface",
+            "Advanced Programming Interface",
+            "Application Program Integration",
+            "Advanced Program Integration",
+          ],
+          correctAnswer: 0,
+          category: "Technology",
+          difficulty: "Medium",
+        },
+      ],
+      hard: [
+        {
+          question: "What consensus mechanism does Ethereum 2.0 use?",
+          options: ["Proof of Work", "Proof of Stake", "Delegated Proof of Stake", "Proof of Authority"],
+          correctAnswer: 1,
+          category: "Technology",
+          difficulty: "Hard",
+        },
+      ],
+    },
+  }
 
+  // Generate questions based on level difficulty
+  const generateQuestions = useCallback(() => {
+    const categories = ["space", "science", "technology"]
+    const difficulties =
+      config.grade <= 3 ? ["easy"] : config.grade <= 6 ? ["easy", "medium"] : ["easy", "medium", "hard"]
+    const numQuestions = Math.min(10, 5 + config.grade)
+
+    const allQuestions: Question[] = []
+
+    categories.forEach((category) => {
+      difficulties.forEach((difficulty) => {
+        const categoryQuestions = questionDatabase[category as keyof typeof questionDatabase]
+        const difficultyQuestions = categoryQuestions[difficulty as keyof typeof categoryQuestions] || []
+        allQuestions.push(...difficultyQuestions)
+      })
+    })
+
+    // Shuffle and select questions
+    const shuffled = [...allQuestions].sort(() => Math.random() - 0.5)
+    const selectedQuestions = shuffled.slice(0, numQuestions)
+
+    setQuestions(selectedQuestions)
+  }, [config.grade])
+
+  // Initialize game
   useEffect(() => {
-    if (gameStarted && !isComplete) {
-      const timer = setInterval(() => {
+    generateQuestions()
+    setIsGameActive(true)
+    setTimeElapsed(0)
+    setQuestionTimeLeft(30)
+    setCurrentQuestionIndex(0)
+    setGameCompleted(false)
+    setCorrectAnswers(0)
+    setScore(0)
+    setHintsUsed(0)
+    setSelectedAnswer(null)
+    setShowAnswer(false)
+    playSound("gameStart")
+  }, [level, generateQuestions, playSound])
+
+  // Game timer
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (isGameActive && !gameCompleted) {
+      interval = setInterval(() => {
         setTimeElapsed((prev) => prev + 1)
       }, 1000)
-
-      return () => clearInterval(timer)
     }
-  }, [gameStarted, isComplete])
+    return () => clearInterval(interval)
+  }, [isGameActive, gameCompleted])
 
+  // Question timer
   useEffect(() => {
-    if (gameStarted && !showAnswer && questionTimeLeft > 0) {
-      const timer = setInterval(() => {
+    let interval: NodeJS.Timeout
+    if (isGameActive && !gameCompleted && !showAnswer) {
+      interval = setInterval(() => {
         setQuestionTimeLeft((prev) => {
           if (prev <= 1) {
             handleTimeUp()
-            return 0
+            return 30
           }
           return prev - 1
         })
       }, 1000)
-
-      return () => clearInterval(timer)
     }
-  }, [gameStarted, showAnswer, questionTimeLeft])
+    return () => clearInterval(interval)
+  }, [isGameActive, gameCompleted, showAnswer, currentQuestionIndex])
 
-  const startGame = () => {
-    setGameStarted(true)
-    setCurrentQuestionIndex(0)
-    setSelectedAnswer(null)
-    setCorrectAnswers(0)
-    setStreak(0)
-    setMaxStreak(0)
-    setTimeElapsed(0)
-    setQuestionTimeLeft(30)
-    setIsComplete(false)
-    setShowAnswer(false)
-  }
-
+  // Handle answer selection
   const handleAnswerSelect = (answerIndex: number) => {
-    if (showAnswer) return
+    if (!isGameActive || showAnswer) return
+
     setSelectedAnswer(answerIndex)
-  }
-
-  const handleSubmitAnswer = () => {
-    if (selectedAnswer === null) return
-
     setShowAnswer(true)
 
-    const isCorrect = selectedAnswer === currentQuestion.correctAnswer
+    const currentQuestion = questions[currentQuestionIndex]
+    const isCorrect = answerIndex === currentQuestion.correctAnswer
 
     if (isCorrect) {
       setCorrectAnswers((prev) => prev + 1)
-      setStreak((prev) => {
-        const newStreak = prev + 1
-        setMaxStreak((current) => Math.max(current, newStreak))
-        return newStreak
-      })
+      playSound("success")
     } else {
-      setStreak(0)
+      playSound("error")
     }
 
+    // Move to next question after delay
     setTimeout(() => {
       nextQuestion()
     }, 2000)
   }
 
+  // Handle time up
   const handleTimeUp = () => {
+    if (!isGameActive || showAnswer) return
+
     setShowAnswer(true)
-    setStreak(0)
+    playSound("error")
 
     setTimeout(() => {
       nextQuestion()
     }, 2000)
   }
 
+  // Move to next question
   const nextQuestion = () => {
-    if (currentQuestionIndex + 1 >= totalQuestions) {
-      // Game complete
-      setIsComplete(true)
-      const accuracy = (correctAnswers / totalQuestions) * 100
-      const speedBonus = Math.max(0, 1000 - timeElapsed * 5)
-      const streakBonus = maxStreak * 100
-      const accuracyBonus = accuracy * 10
-      const totalScore = Math.round(speedBonus + streakBonus + accuracyBonus)
-      onComplete(totalScore, timeElapsed)
+    if (currentQuestionIndex + 1 >= questions.length) {
+      // Game completed
+      setGameCompleted(true)
+      setIsGameActive(false)
+
+      const accuracy = (correctAnswers / questions.length) * 100
+      const timeBonus = Math.max(0, (questions.length * 30 - timeElapsed) * 2)
+      const accuracyBonus = correctAnswers * 50
+      const hintPenalty = hintsUsed * 25
+      const finalScore = Math.max(100, config.basePoints + timeBonus + accuracyBonus - hintPenalty)
+
+      setScore(finalScore)
+      playSound("gameComplete")
+
+      setTimeout(() => {
+        onComplete(finalScore, timeElapsed)
+      }, 2000)
     } else {
       setCurrentQuestionIndex((prev) => prev + 1)
       setSelectedAnswer(null)
@@ -201,307 +333,219 @@ export default function TriviaGame({ onComplete }: TriviaGameProps) {
     }
   }
 
-  const resetGame = () => {
-    setGameStarted(false)
-    setCurrentQuestionIndex(0)
-    setSelectedAnswer(null)
-    setCorrectAnswers(0)
-    setStreak(0)
-    setMaxStreak(0)
-    setTimeElapsed(0)
-    setQuestionTimeLeft(30)
-    setIsComplete(false)
-    setShowAnswer(false)
+  // Use hint (eliminate 2 wrong answers)
+  const useHint = () => {
+    if (hintsUsed >= 3 || !isGameActive || showAnswer) return
+
+    setHintsUsed((prev) => prev + 1)
+    playSound("powerup")
+
+    // This would eliminate wrong answers in a real implementation
+    // For now, just show a hint message
+    const currentQuestion = questions[currentQuestionIndex]
+    alert(`Hint: The answer is related to ${currentQuestion.category.toLowerCase()}!`)
   }
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+    return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case "Easy":
-        return "bg-green-500/20 text-green-400"
-      case "Medium":
-        return "bg-yellow-500/20 text-yellow-400"
-      case "Hard":
-        return "bg-red-500/20 text-red-400"
-      default:
-        return "bg-gray-500/20 text-gray-400"
-    }
+  const getProgressPercentage = () => {
+    return ((currentQuestionIndex + 1) / questions.length) * 100
   }
 
-  if (!gameStarted) {
+  const getTimeColor = () => {
+    if (questionTimeLeft <= 5) return "text-red-400"
+    if (questionTimeLeft <= 10) return "text-yellow-400"
+    return "text-green-400"
+  }
+
+  if (questions.length === 0) {
     return (
-      <div className="space-y-6">
-        <Card className="bg-white/10 border-white/20">
-          <CardHeader className="text-center">
-            <CardTitle className="text-white flex items-center justify-center gap-2 text-2xl">
-              🎮 LumTrivia - Knowledge Challenge
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-center space-y-6">
-            <div className="text-white/70">
-              <p className="text-lg mb-4">Test your knowledge across multiple categories!</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="p-4 bg-white/5 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-400">{totalQuestions}</div>
-                  <div className="text-sm">Questions</div>
-                </div>
-                <div className="p-4 bg-white/5 rounded-lg">
-                  <div className="text-2xl font-bold text-orange-400">30s</div>
-                  <div className="text-sm">Per Question</div>
-                </div>
-                <div className="p-4 bg-white/5 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-400">Mixed</div>
-                  <div className="text-sm">Difficulty</div>
-                </div>
-              </div>
-            </div>
-            <Button
-              onClick={startGame}
-              className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold px-8 py-3 text-lg"
-            >
-              Start Quiz
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-white text-xl">Loading questions...</div>
       </div>
     )
   }
 
-  if (isComplete) {
-    const accuracy = (correctAnswers / totalQuestions) * 100
-
-    return (
-      <div className="space-y-6">
-        <Card className="bg-white/10 border-white/20">
-          <CardHeader className="text-center">
-            <CardTitle className="text-white flex items-center justify-center gap-2 text-2xl">
-              <CheckCircle className="h-8 w-8 text-green-400" />
-              Quiz Complete!
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-center space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-4 bg-white/5 rounded-lg">
-                <div className="text-2xl font-bold text-green-400">
-                  {correctAnswers}/{totalQuestions}
-                </div>
-                <div className="text-sm text-white/70">Correct</div>
-              </div>
-              <div className="p-4 bg-white/5 rounded-lg">
-                <div className="text-2xl font-bold text-blue-400">{accuracy.toFixed(1)}%</div>
-                <div className="text-sm text-white/70">Accuracy</div>
-              </div>
-              <div className="p-4 bg-white/5 rounded-lg">
-                <div className="text-2xl font-bold text-orange-400">{maxStreak}</div>
-                <div className="text-sm text-white/70">Best Streak</div>
-              </div>
-              <div className="p-4 bg-white/5 rounded-lg">
-                <div className="text-2xl font-bold text-purple-400">{formatTime(timeElapsed)}</div>
-                <div className="text-sm text-white/70">Time</div>
-              </div>
-            </div>
-
-            <div className="flex gap-4 justify-center">
-              <Button
-                onClick={resetGame}
-                className="bg-blue-500/20 border-blue-500/30 text-blue-300 hover:bg-blue-500/30 flex items-center gap-2"
-                variant="outline"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Play Again
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  const currentQuestion = questions[currentQuestionIndex]
 
   return (
     <div className="space-y-6">
       {/* Game Header */}
-      <Card className="bg-white/10 border-white/20">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-white flex items-center gap-2">🎮 LumTrivia</CardTitle>
-            <div className="flex items-center gap-4">
-              <Badge className="bg-blue-500/20 text-blue-400 flex items-center gap-1">
-                <Timer className="h-4 w-4" />
-                {formatTime(timeElapsed)}
-              </Badge>
-              <Badge className="bg-green-500/20 text-green-400">
-                {correctAnswers}/{totalQuestions}
-              </Badge>
-              <Badge className="bg-orange-500/20 text-orange-400 flex items-center gap-1">
-                <Zap className="h-4 w-4" />
-                Streak: {streak}
-              </Badge>
-            </div>
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            onClick={onBack}
+            className="bg-purple-900/30 border-purple-500/30 text-purple-100 hover:bg-purple-800/40"
+          >
+            ← Back
+          </Button>
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-white">
+              Level {level} - Grade {config.grade}
+            </h1>
+            <p className="text-purple-300">{config.difficulty} Trivia Challenge</p>
           </div>
-        </CardHeader>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Question Card */}
-        <div className="lg:col-span-3">
-          <Card className="bg-white/10 border-white/20">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Badge className="bg-purple-500/20 text-purple-400">
-                    Question {currentQuestionIndex + 1}/{totalQuestions}
-                  </Badge>
-                  <Badge className={getDifficultyColor(currentQuestion.difficulty)}>{currentQuestion.difficulty}</Badge>
-                  <Badge className="bg-blue-500/20 text-blue-400">{currentQuestion.category}</Badge>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Timer className="h-4 w-4 text-red-400" />
-                  <span className="text-red-400 font-bold">{questionTimeLeft}s</span>
-                </div>
-              </div>
-              <Progress value={(questionTimeLeft / 30) * 100} className="h-2 bg-white/10" />
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="text-white text-xl font-semibold">{currentQuestion.question}</div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {currentQuestion.options.map((option, index) => (
-                  <Button
-                    key={index}
-                    onClick={() => handleAnswerSelect(index)}
-                    disabled={showAnswer}
-                    className={`p-4 h-auto text-left justify-start ${
-                      showAnswer
-                        ? index === currentQuestion.correctAnswer
-                          ? "bg-green-500/30 border-green-400 text-green-200"
-                          : selectedAnswer === index
-                            ? "bg-red-500/30 border-red-400 text-red-200"
-                            : "bg-white/5 border-white/20 text-white/50"
-                        : selectedAnswer === index
-                          ? "bg-blue-500/30 border-blue-400 text-white"
-                          : "bg-white/10 border-white/20 text-white hover:bg-white/20"
-                    }`}
-                    variant="outline"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold">
-                        {String.fromCharCode(65 + index)}
-                      </div>
-                      <div>{option}</div>
-                    </div>
-                  </Button>
-                ))}
-              </div>
-
-              {!showAnswer && (
-                <Button
-                  onClick={handleSubmitAnswer}
-                  disabled={selectedAnswer === null}
-                  className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 disabled:opacity-50"
-                >
-                  Submit Answer
-                </Button>
-              )}
-
-              {showAnswer && (
-                <div className="text-center">
-                  {selectedAnswer === currentQuestion.correctAnswer ? (
-                    <div className="text-green-400 font-semibold text-lg">
-                      ✅ Correct! +
-                      {currentQuestion.difficulty === "Easy" ? 10 : currentQuestion.difficulty === "Medium" ? 20 : 30}{" "}
-                      points
-                    </div>
-                  ) : (
-                    <div className="text-red-400 font-semibold text-lg">
-                      ❌ Incorrect. The correct answer was {String.fromCharCode(65 + currentQuestion.correctAnswer)}
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
 
-        {/* Stats and Progress */}
-        <div className="space-y-4">
-          {/* Current Stats */}
-          <Card className="bg-white/10 border-white/20">
-            <CardHeader>
-              <CardTitle className="text-white text-lg flex items-center gap-2">
-                <Brain className="h-5 w-5" />
-                Stats
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between text-white">
-                <span>Progress:</span>
-                <span className="text-blue-400">
-                  {currentQuestionIndex + 1}/{totalQuestions}
-                </span>
-              </div>
-              <div className="flex justify-between text-white">
-                <span>Correct:</span>
-                <span className="text-green-400">{correctAnswers}</span>
-              </div>
-              <div className="flex justify-between text-white">
-                <span>Current Streak:</span>
-                <span className="text-orange-400">{streak}</span>
-              </div>
-              <div className="flex justify-between text-white">
-                <span>Best Streak:</span>
-                <span className="text-yellow-400">{maxStreak}</span>
-              </div>
-              <div className="flex justify-between text-white">
-                <span>Accuracy:</span>
-                <span className="text-purple-400">
-                  {currentQuestionIndex > 0
-                    ? Math.round((correctAnswers / (currentQuestionIndex + (showAnswer ? 1 : 0))) * 100)
-                    : 0}
-                  %
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Progress Bar */}
-          <Card className="bg-white/10 border-white/20">
-            <CardHeader>
-              <CardTitle className="text-white text-lg">Progress</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Progress
-                value={((currentQuestionIndex + (showAnswer ? 1 : 0)) / totalQuestions) * 100}
-                className="h-3 bg-white/10"
-              />
-              <div className="text-white/70 text-sm mt-2 text-center">
-                {Math.round(((currentQuestionIndex + (showAnswer ? 1 : 0)) / totalQuestions) * 100)}% Complete
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Actions */}
-          <Card className="bg-white/10 border-white/20">
-            <CardHeader>
-              <CardTitle className="text-white text-lg">Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={resetGame}
-                className="w-full bg-red-500/20 border-red-500/30 text-red-300 hover:bg-red-500/30 flex items-center gap-2"
-                variant="outline"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Quit Quiz
-              </Button>
-            </CardContent>
-          </Card>
+        <div className="flex items-center gap-4 text-sm md:text-base">
+          <Badge className={`${getTimeColor()} bg-black/20 border border-white/20`}>⏱️ {questionTimeLeft}s</Badge>
+          <Badge className="text-yellow-400 bg-black/20 border border-white/20">💰 {config.lumReward} $LUM</Badge>
+          <Badge className="text-blue-400 bg-black/20 border border-white/20">🎯 {config.basePoints} pts</Badge>
         </div>
       </div>
+
+      {/* Progress */}
+      <Card className="bg-purple-900/30 border-purple-500/30 backdrop-blur-sm">
+        <CardContent className="p-4">
+          <div className="flex justify-between text-white mb-2">
+            <span>
+              Question {currentQuestionIndex + 1} of {questions.length}
+            </span>
+            <span className="text-green-400">{correctAnswers} correct</span>
+          </div>
+          <Progress value={getProgressPercentage()} className="h-3" />
+        </CardContent>
+      </Card>
+
+      {/* Game Stats */}
+      <div className="grid grid-cols-4 gap-4">
+        <Card className="bg-green-900/30 border-green-500/30 backdrop-blur-sm">
+          <CardContent className="p-3 text-center">
+            <div className="text-2xl font-bold text-green-300">{correctAnswers}</div>
+            <div className="text-xs text-green-400">Correct</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-red-900/30 border-red-500/30 backdrop-blur-sm">
+          <CardContent className="p-3 text-center">
+            <div className="text-2xl font-bold text-red-300">{currentQuestionIndex - correctAnswers}</div>
+            <div className="text-xs text-red-400">Wrong</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-blue-900/30 border-blue-500/30 backdrop-blur-sm">
+          <CardContent className="p-3 text-center">
+            <div className="text-2xl font-bold text-blue-300">{hintsUsed}/3</div>
+            <div className="text-xs text-blue-400">Hints</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-purple-900/30 border-purple-500/30 backdrop-blur-sm">
+          <CardContent className="p-3 text-center">
+            <div className="text-2xl font-bold text-purple-300">{score}</div>
+            <div className="text-xs text-purple-400">Score</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Question Card */}
+      <Card className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border border-blue-500/30 backdrop-blur-sm">
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <Badge className="bg-blue-500/20 text-blue-300">{currentQuestion.category}</Badge>
+            <Badge
+              className={`${
+                currentQuestion.difficulty === "Easy"
+                  ? "bg-green-500/20 text-green-300"
+                  : currentQuestion.difficulty === "Medium"
+                    ? "bg-yellow-500/20 text-yellow-300"
+                    : "bg-red-500/20 text-red-300"
+              }`}
+            >
+              {currentQuestion.difficulty}
+            </Badge>
+          </div>
+          <CardTitle className="text-white text-xl md:text-2xl">{currentQuestion.question}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {currentQuestion.options.map((option, index) => (
+            <Button
+              key={index}
+              onClick={() => handleAnswerSelect(index)}
+              disabled={!isGameActive || showAnswer}
+              className={`w-full p-4 text-left justify-start text-wrap h-auto ${
+                showAnswer
+                  ? index === currentQuestion.correctAnswer
+                    ? "bg-green-500/50 border-green-400 text-white"
+                    : selectedAnswer === index
+                      ? "bg-red-500/50 border-red-400 text-white"
+                      : "bg-white/10 border-white/20 text-white/70"
+                  : selectedAnswer === index
+                    ? "bg-blue-500/50 border-blue-400 text-white"
+                    : "bg-white/10 border-white/20 text-white hover:bg-white/20"
+              }`}
+              variant="outline"
+            >
+              <span className="font-bold mr-3">{String.fromCharCode(65 + index)}.</span>
+              {option}
+            </Button>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Controls */}
+      <div className="flex justify-center gap-4">
+        <Button
+          onClick={useHint}
+          disabled={hintsUsed >= 3 || !isGameActive || showAnswer}
+          className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold"
+        >
+          💡 Hint ({3 - hintsUsed} left)
+        </Button>
+        <Button
+          onClick={() => window.location.reload()}
+          variant="outline"
+          className="bg-red-900/30 border-red-500/30 text-red-300 hover:bg-red-800/40"
+        >
+          🔄 Restart
+        </Button>
+      </div>
+
+      {/* Game Completed Modal */}
+      {gameCompleted && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <Card className="bg-gradient-to-br from-green-900/90 to-blue-900/90 border border-green-500/50 backdrop-blur-sm max-w-md mx-4">
+            <CardHeader className="text-center">
+              <CardTitle className="text-white flex items-center justify-center gap-3">
+                <span className="text-3xl animate-bounce">🎉</span>
+                <span>Trivia Complete!</span>
+                <span className="text-3xl animate-bounce">🎉</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-center">
+              <div className="text-4xl font-bold text-green-400">{score} Points!</div>
+              <div className="text-white space-y-2">
+                <div>⏱️ Total Time: {formatTime(timeElapsed)}</div>
+                <div>
+                  ✅ Correct: {correctAnswers}/{questions.length}
+                </div>
+                <div>📊 Accuracy: {Math.round((correctAnswers / questions.length) * 100)}%</div>
+                <div>💡 Hints Used: {hintsUsed}</div>
+                <div className="text-yellow-400 font-bold">💰 +{config.lumReward} $LUM</div>
+              </div>
+
+              {/* Special NFT notification */}
+              {level === 15 && (
+                <div className="bg-purple-500/20 border border-purple-400/50 rounded-lg p-3">
+                  <div className="text-2xl mb-2">🎨</div>
+                  <div className="text-purple-300 font-bold">Grade 5 NFT Unlocked!</div>
+                  <div className="text-sm text-purple-400">+3000 $LUM Bonus</div>
+                </div>
+              )}
+
+              {(level === 28 || level === 29 || level === 30) && (
+                <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-400/50 rounded-lg p-3">
+                  <div className="text-2xl mb-2">👑</div>
+                  <div className="text-yellow-300 font-bold">Legendary NFT Unlocked!</div>
+                  <div className="text-sm text-yellow-400">+6000 $LUM Bonus</div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
