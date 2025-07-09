@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ShoppingCart, Star, Search, Zap, Trophy, Puzzle, Crown } from "lucide-react"
 
 interface NFTItem {
   id: string
@@ -17,6 +16,7 @@ interface NFTItem {
   rarity: "Common" | "Rare" | "Epic" | "Legendary"
   category: "Avatar" | "Power-up" | "Badge" | "Puzzle Pack"
   image: string
+  emoji: string
   owned?: boolean
 }
 
@@ -33,6 +33,7 @@ export default function NFTMarketplace() {
       rarity: "Epic",
       category: "Avatar",
       image: "/placeholder.svg?height=200&width=200",
+      emoji: "🤖",
     },
     {
       id: "2",
@@ -42,6 +43,7 @@ export default function NFTMarketplace() {
       rarity: "Rare",
       category: "Power-up",
       image: "/placeholder.svg?height=200&width=200",
+      emoji: "⏰",
     },
     {
       id: "3",
@@ -51,6 +53,7 @@ export default function NFTMarketplace() {
       rarity: "Legendary",
       category: "Badge",
       image: "/placeholder.svg?height=200&width=200",
+      emoji: "🏆",
       owned: true,
     },
     {
@@ -61,6 +64,7 @@ export default function NFTMarketplace() {
       rarity: "Rare",
       category: "Puzzle Pack",
       image: "/placeholder.svg?height=200&width=200",
+      emoji: "🧩",
     },
     {
       id: "5",
@@ -70,6 +74,7 @@ export default function NFTMarketplace() {
       rarity: "Common",
       category: "Power-up",
       image: "/placeholder.svg?height=200&width=200",
+      emoji: "💎",
     },
     {
       id: "6",
@@ -79,36 +84,52 @@ export default function NFTMarketplace() {
       rarity: "Epic",
       category: "Avatar",
       image: "/placeholder.svg?height=200&width=200",
+      emoji: "🌟",
     },
   ]
 
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
       case "Common":
-        return "bg-gray-500"
+        return "from-gray-500 to-gray-600"
       case "Rare":
-        return "bg-blue-500"
+        return "from-blue-500 to-blue-600"
       case "Epic":
-        return "bg-purple-500"
+        return "from-purple-500 to-purple-600"
       case "Legendary":
-        return "bg-yellow-500"
+        return "from-yellow-500 to-yellow-600"
       default:
-        return "bg-gray-500"
+        return "from-gray-500 to-gray-600"
+    }
+  }
+
+  const getRarityEmoji = (rarity: string) => {
+    switch (rarity) {
+      case "Common":
+        return "⚪"
+      case "Rare":
+        return "🔵"
+      case "Epic":
+        return "🟣"
+      case "Legendary":
+        return "🟡"
+      default:
+        return "⚪"
     }
   }
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case "Avatar":
-        return Crown
+        return "👤"
       case "Power-up":
-        return Zap
+        return "⚡"
       case "Badge":
-        return Trophy
+        return "🏆"
       case "Puzzle Pack":
-        return Puzzle
+        return "🧩"
       default:
-        return Star
+        return "⭐"
     }
   }
 
@@ -123,13 +144,16 @@ export default function NFTMarketplace() {
   return (
     <div className="space-y-6">
       {/* Marketplace Header */}
-      <Card className="bg-white/10 border-white/20">
+      <Card className="bg-gradient-to-r from-purple-900/50 to-pink-900/50 border border-purple-500/30 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5 text-purple-400" />
-            NFT Marketplace
+          <CardTitle className="text-white flex items-center gap-3">
+            <span className="text-3xl">🛒</span>
+            <span>Galactic NFT Marketplace</span>
+            <span className="text-2xl animate-bounce">✨</span>
           </CardTitle>
-          <CardDescription className="text-white/70">Discover, collect, and trade unique puzzle NFTs</CardDescription>
+          <CardDescription className="text-purple-300">
+            Discover, collect, and trade unique puzzle NFTs from across the galaxy! 🌌
+          </CardDescription>
         </CardHeader>
       </Card>
 
@@ -137,81 +161,91 @@ export default function NFTMarketplace() {
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50" />
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg">🔍</span>
             <Input
-              placeholder="Search NFTs..."
+              placeholder="Search NFTs across the galaxy..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/50"
+              className="pl-12 bg-purple-900/30 border-purple-500/30 text-white placeholder:text-purple-300 backdrop-blur-sm"
             />
           </div>
         </div>
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger className="w-full sm:w-48 bg-white/10 border-white/20 text-white">
+          <SelectTrigger className="w-full sm:w-48 bg-purple-900/30 border-purple-500/30 text-white backdrop-blur-sm">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="avatar">Avatars</SelectItem>
-            <SelectItem value="power-up">Power-ups</SelectItem>
-            <SelectItem value="badge">Badges</SelectItem>
-            <SelectItem value="puzzle pack">Puzzle Packs</SelectItem>
+            <SelectItem value="all">🌟 All Categories</SelectItem>
+            <SelectItem value="avatar">👤 Avatars</SelectItem>
+            <SelectItem value="power-up">⚡ Power-ups</SelectItem>
+            <SelectItem value="badge">🏆 Badges</SelectItem>
+            <SelectItem value="puzzle pack">🧩 Puzzle Packs</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <Tabs defaultValue="marketplace" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 bg-white/10 border-white/20">
-          <TabsTrigger value="marketplace" className="text-white data-[state=active]:bg-white/20">
-            Marketplace
+        <TabsList className="grid w-full grid-cols-3 bg-purple-900/30 border border-purple-500/30 backdrop-blur-sm">
+          <TabsTrigger value="marketplace" className="text-purple-100 data-[state=active]:bg-purple-600/50">
+            🛒 Marketplace
           </TabsTrigger>
-          <TabsTrigger value="owned" className="text-white data-[state=active]:bg-white/20">
-            My NFTs
+          <TabsTrigger value="owned" className="text-purple-100 data-[state=active]:bg-purple-600/50">
+            🎨 My NFTs
           </TabsTrigger>
-          <TabsTrigger value="create" className="text-white data-[state=active]:bg-white/20">
-            Create
+          <TabsTrigger value="create" className="text-purple-100 data-[state=active]:bg-purple-600/50">
+            ✨ Create
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="marketplace" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredItems.map((item) => {
-              const IconComponent = getCategoryIcon(item.category)
-              return (
-                <Card key={item.id} className="bg-white/10 border-white/20 hover:bg-white/15 transition-colors">
+            {filteredItems.map((item) => (
+              <Card
+                key={item.id}
+                className={`bg-gradient-to-br ${getRarityColor(item.rarity)} p-1 hover:scale-105 transition-all duration-300 shadow-xl`}
+              >
+                <div className="bg-slate-900/90 rounded-lg p-4 h-full backdrop-blur-sm">
                   <CardHeader className="pb-3">
-                    <div className="aspect-square bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg mb-3 flex items-center justify-center">
-                      <IconComponent className="h-16 w-16 text-white/50" />
+                    <div className="aspect-square bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg mb-3 flex items-center justify-center border border-purple-500/30">
+                      <div className="text-6xl animate-pulse">{item.emoji}</div>
                     </div>
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-white text-lg">{item.name}</CardTitle>
-                      <Badge className={`${getRarityColor(item.rarity)} text-white`}>{item.rarity}</Badge>
+                      <Badge className={`bg-gradient-to-r ${getRarityColor(item.rarity)} text-white font-bold`}>
+                        {getRarityEmoji(item.rarity)} {item.rarity}
+                      </Badge>
                     </div>
-                    <CardDescription className="text-white/70">{item.description}</CardDescription>
+                    <CardDescription className="text-gray-300">{item.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="text-white">
-                        <div className="text-sm text-white/70">Price</div>
-                        <div className="text-xl font-bold text-yellow-400">{item.price} $LUM</div>
+                        <div className="text-sm text-gray-400 flex items-center gap-1">
+                          <span>💰</span>
+                          <span>Price</span>
+                        </div>
+                        <div className="text-2xl font-bold text-yellow-400 flex items-center gap-1">
+                          {item.price} $LUM
+                          <span className="text-lg animate-pulse">✨</span>
+                        </div>
                       </div>
-                      <Badge variant="outline" className="border-white/20 text-white">
-                        {item.category}
+                      <Badge variant="outline" className="border-purple-400/50 text-purple-300">
+                        {getCategoryIcon(item.category)} {item.category}
                       </Badge>
                     </div>
                     {item.owned ? (
-                      <Button disabled className="w-full bg-green-500/20 text-green-400">
-                        Owned
+                      <Button disabled className="w-full bg-green-500/20 text-green-400 font-bold">
+                        ✅ Owned
                       </Button>
                     ) : (
-                      <Button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
-                        Buy Now
+                      <Button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold">
+                        🚀 Buy Now
                       </Button>
                     )}
                   </CardContent>
-                </Card>
-              )
-            })}
+                </div>
+              </Card>
+            ))}
           </div>
         </TabsContent>
 
@@ -219,103 +253,125 @@ export default function NFTMarketplace() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {nftItems
               .filter((item) => item.owned)
-              .map((item) => {
-                const IconComponent = getCategoryIcon(item.category)
-                return (
-                  <Card key={item.id} className="bg-white/10 border-white/20">
-                    <CardHeader className="pb-3">
-                      <div className="aspect-square bg-gradient-to-br from-green-500/20 to-blue-500/20 rounded-lg mb-3 flex items-center justify-center">
-                        <IconComponent className="h-16 w-16 text-white/50" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-white text-lg">{item.name}</CardTitle>
-                        <Badge className={`${getRarityColor(item.rarity)} text-white`}>{item.rarity}</Badge>
-                      </div>
-                      <CardDescription className="text-white/70">{item.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="text-white">
-                          <div className="text-sm text-white/70">Market Value</div>
-                          <div className="text-xl font-bold text-yellow-400">{item.price} $LUM</div>
+              .map((item) => (
+                <Card
+                  key={item.id}
+                  className="bg-gradient-to-br from-green-900/30 to-blue-900/30 border border-green-500/30 backdrop-blur-sm hover:scale-105 transition-all"
+                >
+                  <CardHeader className="pb-3">
+                    <div className="aspect-square bg-gradient-to-br from-green-500/20 to-blue-500/20 rounded-lg mb-3 flex items-center justify-center border border-green-500/30">
+                      <div className="text-6xl animate-bounce">{item.emoji}</div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-white text-lg">{item.name}</CardTitle>
+                      <Badge className={`bg-gradient-to-r ${getRarityColor(item.rarity)} text-white font-bold`}>
+                        {getRarityEmoji(item.rarity)} {item.rarity}
+                      </Badge>
+                    </div>
+                    <CardDescription className="text-gray-300">{item.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-white">
+                        <div className="text-sm text-gray-400 flex items-center gap-1">
+                          <span>💎</span>
+                          <span>Market Value</span>
                         </div>
-                        <Badge className="bg-green-500/20 text-green-400">Owned</Badge>
+                        <div className="text-2xl font-bold text-yellow-400 flex items-center gap-1">
+                          {item.price} $LUM
+                          <span className="text-lg animate-pulse">✨</span>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          className="flex-1 bg-white/10 border-white/20 text-white hover:bg-white/20"
-                        >
-                          Use
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="flex-1 bg-white/10 border-white/20 text-white hover:bg-white/20"
-                        >
-                          Sell
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
+                      <Badge className="bg-green-500/20 text-green-400 border border-green-500/30 font-bold">
+                        ✅ Owned
+                      </Badge>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1 bg-blue-900/30 border-blue-500/30 text-blue-300 hover:bg-blue-800/40 font-bold"
+                      >
+                        🎮 Use
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex-1 bg-orange-900/30 border-orange-500/30 text-orange-300 hover:bg-orange-800/40 font-bold"
+                      >
+                        💰 Sell
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
           </div>
         </TabsContent>
 
         <TabsContent value="create" className="space-y-4">
-          <Card className="bg-white/10 border-white/20">
+          <Card className="bg-gradient-to-br from-indigo-900/30 to-purple-900/30 border border-indigo-500/30 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="text-white">Create Your Own NFT</CardTitle>
-              <CardDescription className="text-white/70">
-                Submit puzzle designs and earn royalties when they're played
+              <CardTitle className="text-white flex items-center gap-3">
+                <span className="text-3xl">✨</span>
+                <span>Create Your Own NFT</span>
+              </CardTitle>
+              <CardDescription className="text-indigo-300">
+                Submit puzzle designs and earn royalties when they're played across the galaxy! 🌌
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="text-center py-12 border-2 border-dashed border-white/20 rounded-lg">
-                <div className="text-white/50 mb-4">
-                  <Puzzle className="h-16 w-16 mx-auto mb-4" />
-                  <p>Upload your puzzle design</p>
-                  <p className="text-sm">Supported formats: JSON, PNG, SVG</p>
+              <div className="text-center py-12 border-2 border-dashed border-purple-500/30 rounded-lg bg-purple-900/10">
+                <div className="text-purple-300 mb-4">
+                  <div className="text-6xl mb-4 animate-bounce">🚀</div>
+                  <p className="text-lg">Upload your puzzle design</p>
+                  <p className="text-sm">Supported formats: JSON, PNG, SVG 📁</p>
                 </div>
-                <Button className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
-                  Choose File
+                <Button className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 font-bold">
+                  📂 Choose File
                 </Button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-white text-sm font-medium mb-2">Puzzle Name</label>
+                  <label className="block text-white text-sm font-medium mb-2 flex items-center gap-2">
+                    <span>🏷️</span>
+                    <span>Puzzle Name</span>
+                  </label>
                   <Input
                     placeholder="Enter puzzle name"
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    className="bg-purple-900/30 border-purple-500/30 text-white placeholder:text-purple-300 backdrop-blur-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-white text-sm font-medium mb-2">Category</label>
+                  <label className="block text-white text-sm font-medium mb-2 flex items-center gap-2">
+                    <span>📂</span>
+                    <span>Category</span>
+                  </label>
                   <Select>
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                    <SelectTrigger className="bg-purple-900/30 border-purple-500/30 text-white backdrop-blur-sm">
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="lumlogic">LumLogic</SelectItem>
-                      <SelectItem value="lumword">LumWord</SelectItem>
-                      <SelectItem value="lummatch">LumMatch</SelectItem>
-                      <SelectItem value="lumcode">LumCode</SelectItem>
+                      <SelectItem value="lumlogic">🧠 LumLogic</SelectItem>
+                      <SelectItem value="lumword">📝 LumWord</SelectItem>
+                      <SelectItem value="lummatch">🎯 LumMatch</SelectItem>
+                      <SelectItem value="lumcode">⚡ LumCode</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-white text-sm font-medium mb-2">Description</label>
+                <label className="block text-white text-sm font-medium mb-2 flex items-center gap-2">
+                  <span>📝</span>
+                  <span>Description</span>
+                </label>
                 <textarea
                   placeholder="Describe your puzzle..."
-                  className="w-full h-24 p-3 bg-white/10 border border-white/20 rounded-md text-white placeholder:text-white/50 resize-none"
+                  className="w-full h-24 p-3 bg-purple-900/30 border border-purple-500/30 rounded-md text-white placeholder:text-purple-300 resize-none backdrop-blur-sm"
                 />
               </div>
 
-              <Button className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600">
-                Submit for Review
+              <Button className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 font-bold text-lg py-3">
+                🚀 Submit for Review
               </Button>
             </CardContent>
           </Card>
