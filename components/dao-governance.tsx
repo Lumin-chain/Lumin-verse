@@ -1,20 +1,24 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Vote, Plus, Clock, CheckCircle, XCircle } from "lucide-react"
 
-interface DAOGovernanceProps {
-  userStats: {
-    lumTokens: number
-    level: number
-  }
+interface GameStats {
+  totalPoints: number
+  lumTokens: number
+  level: number
+  streak: number
+  nftsOwned: number
+  puzzlesSolved: number
 }
 
 interface Proposal {
@@ -26,344 +30,411 @@ interface Proposal {
   votesFor: number
   votesAgainst: number
   totalVotes: number
-  endDate: string
-  status: "active" | "passed" | "failed" | "executed"
-  emoji: string
+  status: "active" | "passed" | "rejected" | "pending"
+  timeLeft: string
+  requiredTokens: number
+}
+
+interface DAOGovernanceProps {
+  userStats: GameStats
 }
 
 export default function DAOGovernance({ userStats }: DAOGovernanceProps) {
-  const [selectedProposal, setSelectedProposal] = useState<string>("")
+  const [activeTab, setActiveTab] = useState("proposals")
+  const [showCreateProposal, setShowCreateProposal] = useState(false)
   const [newProposal, setNewProposal] = useState({
     title: "",
     description: "",
     category: "",
-    requestedAmount: "",
   })
 
-  const proposals: Proposal[] = [
+  const [proposals] = useState<Proposal[]>([
     {
       id: "1",
-      title: "Add Chess Puzzles to LumLogic",
-      description: "Integrate chess-based logic puzzles with AI-powered difficulty scaling and tournament modes.",
-      category: "Game Feature",
-      proposer: "0x1234...5678",
-      votesFor: 750,
-      votesAgainst: 250,
-      totalVotes: 1000,
-      endDate: "2024-02-15",
+      title: "Add Multiplayer Battle Arena",
+      description: "Implement real-time PvP battles with ranked matchmaking and seasonal rewards.",
+      category: "Game Features",
+      proposer: "CryptoPuzzler",
+      votesFor: 15420,
+      votesAgainst: 3200,
+      totalVotes: 18620,
       status: "active",
-      emoji: "♟️",
+      timeLeft: "2 days",
+      requiredTokens: 100,
     },
     {
       id: "2",
-      title: "Increase Daily Reward Pool by 25%",
-      description: "Boost daily challenge rewards to incentivize more active participation in the ecosystem.",
+      title: "Increase Daily Challenge Rewards",
+      description: "Boost daily challenge rewards from 50 $LUM to 100 $LUM to encourage more participation.",
       category: "Tokenomics",
-      proposer: "0x2345...6789",
-      votesFor: 1200,
-      votesAgainst: 300,
-      totalVotes: 1500,
-      endDate: "2024-02-20",
+      proposer: "LogicMaster",
+      votesFor: 12890,
+      votesAgainst: 8750,
+      totalVotes: 21640,
       status: "active",
-      emoji: "💰",
+      timeLeft: "5 days",
+      requiredTokens: 50,
     },
     {
       id: "3",
-      title: "Partnership with Cosmic Academy",
-      description: "Strategic partnership to create educational puzzle content and expand user base.",
-      category: "Partnership",
-      proposer: "0x3456...7890",
-      votesFor: 2100,
-      votesAgainst: 400,
-      totalVotes: 2500,
-      endDate: "2024-01-30",
+      title: "New Puzzle Category: Physics Simulations",
+      description: "Add physics-based puzzle games with gravity, momentum, and collision mechanics.",
+      category: "Game Features",
+      proposer: "PhysicsWiz",
+      votesFor: 8900,
+      votesAgainst: 2100,
+      totalVotes: 11000,
       status: "passed",
-      emoji: "🤝",
+      timeLeft: "Completed",
+      requiredTokens: 75,
     },
-  ]
+    {
+      id: "4",
+      title: "Reduce NFT Minting Threshold",
+      description: "Lower the Grade 5 NFT minting requirement to Grade 3 to make rewards more accessible.",
+      category: "NFT & Rewards",
+      proposer: "AccessibleGaming",
+      votesFor: 5200,
+      votesAgainst: 14800,
+      totalVotes: 20000,
+      status: "rejected",
+      timeLeft: "Completed",
+      requiredTokens: 25,
+    },
+  ])
 
-  const votingPower = Math.floor(userStats.lumTokens * 1.5) // 1.5 votes per LUM token
-  const canCreateProposal = userStats.lumTokens >= 10 // Minimum 10 LUM to create proposal
+  const votingPower = Math.floor(userStats.lumTokens)
+  const canCreateProposal = userStats.lumTokens >= 10
 
-  const handleVote = (proposalId: string, support: boolean) => {
-    // Implement voting logic
-    console.log(`Voting ${support ? "for" : "against"} proposal ${proposalId}`)
+  const handleVote = (proposalId: string, voteType: "for" | "against") => {
+    // In a real implementation, this would interact with the smart contract
+    console.log(`Voting ${voteType} on proposal ${proposalId} with ${votingPower} voting power`)
   }
 
   const handleCreateProposal = () => {
     if (!canCreateProposal) return
-    // Implement proposal creation logic
+
+    // In a real implementation, this would create a proposal on the blockchain
     console.log("Creating proposal:", newProposal)
+    setShowCreateProposal(false)
+    setNewProposal({ title: "", description: "", category: "" })
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "active":
+        return "bg-blue-500/20 text-blue-400 border-blue-500/30"
+      case "passed":
+        return "bg-green-500/20 text-green-400 border-green-500/30"
+      case "rejected":
+        return "bg-red-500/20 text-red-400 border-red-500/30"
+      case "pending":
+        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
+      default:
+        return "bg-gray-500/20 text-gray-400 border-gray-500/30"
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "active":
+        return <Clock className="h-4 w-4" />
+      case "passed":
+        return <CheckCircle className="h-4 w-4" />
+      case "rejected":
+        return <XCircle className="h-4 w-4" />
+      default:
+        return <Clock className="h-4 w-4" />
+    }
   }
 
   return (
     <div className="space-y-6">
       {/* DAO Header */}
-      <Card className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 border border-indigo-500/30 backdrop-blur-sm">
+      <Card className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 border border-purple-500/30 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-3">
-            <span className="text-3xl">🏛️</span>
+            <span className="text-2xl">🏛️</span>
             <span>LUMIN DAO Governance</span>
-            <span className="text-2xl animate-pulse">⚡</span>
+            <span className="text-xl animate-pulse">⚡</span>
           </CardTitle>
-          <CardDescription className="text-indigo-300">
-            Shape the future of the LUMIN ecosystem through decentralized governance! 🌌
-          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-indigo-800/20 rounded-lg">
-              <div className="text-2xl mb-2">🗳️</div>
-              <div className="text-2xl font-bold text-indigo-300">{votingPower}</div>
-              <div className="text-sm text-indigo-400">Your Voting Power</div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-white/5 rounded-lg">
+              <div className="text-2xl font-bold text-purple-300">{votingPower}</div>
+              <div className="text-sm text-purple-400">Your Voting Power</div>
             </div>
-            <div className="text-center p-4 bg-purple-800/20 rounded-lg">
-              <div className="text-2xl mb-2">📊</div>
-              <div className="text-2xl font-bold text-purple-300">
+            <div className="text-center p-4 bg-white/5 rounded-lg">
+              <div className="text-2xl font-bold text-blue-300">
                 {proposals.filter((p) => p.status === "active").length}
               </div>
-              <div className="text-sm text-purple-400">Active Proposals</div>
+              <div className="text-sm text-blue-400">Active Proposals</div>
             </div>
-            <div className="text-center p-4 bg-pink-800/20 rounded-lg">
-              <div className="text-2xl mb-2">✅</div>
-              <div className="text-2xl font-bold text-pink-300">
+            <div className="text-center p-4 bg-white/5 rounded-lg">
+              <div className="text-2xl font-bold text-green-300">
                 {proposals.filter((p) => p.status === "passed").length}
               </div>
-              <div className="text-sm text-pink-400">Passed Proposals</div>
+              <div className="text-sm text-green-400">Passed Proposals</div>
+            </div>
+            <div className="text-center p-4 bg-white/5 rounded-lg">
+              <div className="text-2xl font-bold text-yellow-300">50,000</div>
+              <div className="text-sm text-yellow-400">Total $LUM in Treasury</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="proposals" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3 bg-purple-900/30 border border-purple-500/30 backdrop-blur-sm">
           <TabsTrigger value="proposals" className="text-purple-100 data-[state=active]:bg-purple-600/50">
             📋 Proposals
           </TabsTrigger>
-          <TabsTrigger value="create" className="text-purple-100 data-[state=active]:bg-purple-600/50">
-            ✨ Create
-          </TabsTrigger>
           <TabsTrigger value="treasury" className="text-purple-100 data-[state=active]:bg-purple-600/50">
-            💎 Treasury
+            💰 Treasury
+          </TabsTrigger>
+          <TabsTrigger value="history" className="text-purple-100 data-[state=active]:bg-purple-600/50">
+            📊 History
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="proposals" className="space-y-4">
-          {proposals.map((proposal) => {
-            const forPercentage = (proposal.votesFor / proposal.totalVotes) * 100
-            const againstPercentage = (proposal.votesAgainst / proposal.totalVotes) * 100
+          <div className="flex justify-between items-center">
+            <h3 className="text-white text-xl font-semibold">Active Proposals</h3>
+            <Button
+              onClick={() => setShowCreateProposal(true)}
+              disabled={!canCreateProposal}
+              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Proposal
+            </Button>
+          </div>
 
-            return (
-              <Card
-                key={proposal.id}
-                className="bg-purple-900/30 border border-purple-500/30 backdrop-blur-sm hover:bg-purple-800/40 transition-all"
-              >
+          {!canCreateProposal && (
+            <Card className="bg-yellow-500/20 border-yellow-500/30">
+              <CardContent className="p-4">
+                <div className="text-yellow-300 text-sm">
+                  💡 You need at least 10 $LUM tokens to create proposals. Current balance:{" "}
+                  {userStats.lumTokens.toFixed(1)} $LUM
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="space-y-4">
+            {proposals.map((proposal) => (
+              <Card key={proposal.id} className="bg-white/10 border-white/20 backdrop-blur-sm">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-3xl">{proposal.emoji}</span>
-                      <div>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
                         <CardTitle className="text-white text-lg">{proposal.title}</CardTitle>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge className="bg-blue-500/20 text-blue-400">{proposal.category}</Badge>
-                          <Badge
-                            className={`${
-                              proposal.status === "active"
-                                ? "bg-green-500/20 text-green-400"
-                                : proposal.status === "passed"
-                                  ? "bg-blue-500/20 text-blue-400"
-                                  : "bg-red-500/20 text-red-400"
-                            }`}
-                          >
-                            {proposal.status === "active"
-                              ? "🟢 Active"
-                              : proposal.status === "passed"
-                                ? "✅ Passed"
-                                : "❌ Failed"}
-                          </Badge>
-                        </div>
+                        <Badge className={`${getStatusColor(proposal.status)} flex items-center gap-1`}>
+                          {getStatusIcon(proposal.status)}
+                          {proposal.status}
+                        </Badge>
                       </div>
-                    </div>
-                    <div className="text-right text-sm text-purple-300">
-                      <div>Ends: {proposal.endDate}</div>
-                      <div>By: {proposal.proposer}</div>
+                      <div className="text-white/70 text-sm mb-2">{proposal.description}</div>
+                      <div className="flex items-center gap-4 text-sm text-white/60">
+                        <span>By: {proposal.proposer}</span>
+                        <span>Category: {proposal.category}</span>
+                        <span>Time left: {proposal.timeLeft}</span>
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-purple-200">{proposal.description}</p>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm text-white">
+                        <span>For: {proposal.votesFor.toLocaleString()}</span>
+                        <span>Against: {proposal.votesAgainst.toLocaleString()}</span>
+                      </div>
+                      <Progress value={(proposal.votesFor / proposal.totalVotes) * 100} className="h-2 bg-white/10" />
+                      <div className="text-center text-xs text-white/60">
+                        {proposal.totalVotes.toLocaleString()} total votes
+                      </div>
+                    </div>
 
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-green-400">
-                        ✅ For: {forPercentage.toFixed(1)}% ({proposal.votesFor} votes)
-                      </span>
-                      <span className="text-red-400">
-                        ❌ Against: {againstPercentage.toFixed(1)}% ({proposal.votesAgainst} votes)
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <Progress value={forPercentage} className="h-3 bg-red-900/50" />
-                      <div
-                        className="absolute inset-0 bg-green-500/30 rounded-full"
-                        style={{ width: `${forPercentage}%` }}
-                      />
-                    </div>
+                    {proposal.status === "active" && (
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => handleVote(proposal.id, "for")}
+                          disabled={votingPower < proposal.requiredTokens}
+                          className="flex-1 bg-green-500/20 border-green-500/30 text-green-300 hover:bg-green-500/30"
+                          variant="outline"
+                        >
+                          <Vote className="h-4 w-4 mr-2" />
+                          Vote For
+                        </Button>
+                        <Button
+                          onClick={() => handleVote(proposal.id, "against")}
+                          disabled={votingPower < proposal.requiredTokens}
+                          className="flex-1 bg-red-500/20 border-red-500/30 text-red-300 hover:bg-red-500/30"
+                          variant="outline"
+                        >
+                          <Vote className="h-4 w-4 mr-2" />
+                          Vote Against
+                        </Button>
+                      </div>
+                    )}
+
+                    {votingPower < proposal.requiredTokens && proposal.status === "active" && (
+                      <div className="text-yellow-300 text-xs text-center">
+                        Need {proposal.requiredTokens} $LUM to vote (you have {votingPower})
+                      </div>
+                    )}
                   </div>
-
-                  {proposal.status === "active" && (
-                    <div className="flex gap-3">
-                      <Button
-                        onClick={() => handleVote(proposal.id, true)}
-                        className="flex-1 bg-green-500/20 border border-green-500/30 text-green-300 hover:bg-green-500/30"
-                        disabled={votingPower === 0}
-                      >
-                        ✅ Vote For ({votingPower} votes)
-                      </Button>
-                      <Button
-                        onClick={() => handleVote(proposal.id, false)}
-                        className="flex-1 bg-red-500/20 border border-red-500/30 text-red-300 hover:bg-red-500/30"
-                        disabled={votingPower === 0}
-                      >
-                        ❌ Vote Against ({votingPower} votes)
-                      </Button>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
-            )
-          })}
+            ))}
+          </div>
         </TabsContent>
 
-        <TabsContent value="create" className="space-y-4">
-          <Card className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 border border-purple-500/30 backdrop-blur-sm">
+        <TabsContent value="treasury" className="space-y-4">
+          <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-3">
-                <span className="text-3xl">✨</span>
-                <span>Create New Proposal</span>
-              </CardTitle>
-              <CardDescription className="text-purple-300">
-                {canCreateProposal
-                  ? "Submit your ideas to improve the LUMIN ecosystem! 🚀"
-                  : `You need at least 10 $LUM tokens to create proposals. Current: ${userStats.lumTokens.toFixed(1)} $LUM`}
-              </CardDescription>
+              <CardTitle className="text-white">Treasury Overview</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <label className="block text-white text-sm font-medium mb-2">📝 Proposal Title</label>
-                <Input
-                  placeholder="Enter proposal title..."
-                  value={newProposal.title}
-                  onChange={(e) => setNewProposal({ ...newProposal, title: e.target.value })}
-                  className="bg-purple-900/30 border-purple-500/30 text-white placeholder:text-purple-300"
-                  disabled={!canCreateProposal}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
+                  <div className="text-2xl font-bold text-yellow-300">50,000 $LUM</div>
+                  <div className="text-sm text-yellow-400">Total Treasury</div>
+                </div>
+                <div className="p-4 bg-blue-500/20 rounded-lg border border-blue-500/30">
+                  <div className="text-2xl font-bold text-blue-300">2,500 $LUM</div>
+                  <div className="text-sm text-blue-400">Monthly Inflow</div>
+                </div>
+                <div className="p-4 bg-green-500/20 rounded-lg border border-green-500/30">
+                  <div className="text-2xl font-bold text-green-300">1,800 $LUM</div>
+                  <div className="text-sm text-green-400">Monthly Outflow</div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-white text-sm font-medium mb-2">📂 Category</label>
-                <Select
-                  value={newProposal.category}
-                  onValueChange={(value) => setNewProposal({ ...newProposal, category: value })}
-                  disabled={!canCreateProposal}
-                >
-                  <SelectTrigger className="bg-purple-900/30 border-purple-500/30 text-white">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="game-feature">🎮 Game Feature</SelectItem>
-                    <SelectItem value="tokenomics">💰 Tokenomics</SelectItem>
-                    <SelectItem value="governance">🏛️ Governance</SelectItem>
-                    <SelectItem value="partnership">🤝 Partnership</SelectItem>
-                    <SelectItem value="treasury">💎 Treasury</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-3">
+                <h4 className="text-white font-semibold">Recent Treasury Activities</h4>
+                {[
+                  { action: "Game Development Fund", amount: "-500 $LUM", type: "expense" },
+                  { action: "Daily Challenge Rewards", amount: "-300 $LUM", type: "expense" },
+                  { action: "NFT Sales Revenue", amount: "+1,200 $LUM", type: "income" },
+                  { action: "Tournament Prize Pool", amount: "-800 $LUM", type: "expense" },
+                ].map((activity, index) => (
+                  <div key={index} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                    <span className="text-white">{activity.action}</span>
+                    <span className={`font-bold ${activity.type === "income" ? "text-green-400" : "text-red-400"}`}>
+                      {activity.amount}
+                    </span>
+                  </div>
+                ))}
               </div>
-
-              <div>
-                <label className="block text-white text-sm font-medium mb-2">📄 Description</label>
-                <Textarea
-                  placeholder="Describe your proposal in detail..."
-                  value={newProposal.description}
-                  onChange={(e) => setNewProposal({ ...newProposal, description: e.target.value })}
-                  className="bg-purple-900/30 border-purple-500/30 text-white placeholder:text-purple-300 h-32"
-                  disabled={!canCreateProposal}
-                />
-              </div>
-
-              <div>
-                <label className="block text-white text-sm font-medium mb-2">💰 Requested Amount (if applicable)</label>
-                <Input
-                  placeholder="Amount in $LUM tokens..."
-                  value={newProposal.requestedAmount}
-                  onChange={(e) => setNewProposal({ ...newProposal, requestedAmount: e.target.value })}
-                  className="bg-purple-900/30 border-purple-500/30 text-white placeholder:text-purple-300"
-                  disabled={!canCreateProposal}
-                />
-              </div>
-
-              <Button
-                onClick={handleCreateProposal}
-                disabled={!canCreateProposal || !newProposal.title || !newProposal.category}
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold py-3"
-              >
-                🚀 Submit Proposal
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="treasury" className="space-y-4">
-          <Card className="bg-gradient-to-br from-yellow-900/30 to-orange-900/30 border border-yellow-500/30 backdrop-blur-sm">
+        <TabsContent value="history" className="space-y-4">
+          <Card className="bg-white/10 border-white/20 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-3">
-                <span className="text-3xl">💎</span>
-                <span>DAO Treasury</span>
-              </CardTitle>
+              <CardTitle className="text-white">Governance History</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h3 className="text-white font-semibold text-lg">💰 Treasury Balance</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between p-3 bg-yellow-800/20 rounded-lg">
-                      <span className="text-yellow-300">$LUM Tokens</span>
-                      <span className="text-yellow-400 font-bold">2,500,000 $LUM</span>
-                    </div>
-                    <div className="flex justify-between p-3 bg-blue-800/20 rounded-lg">
-                      <span className="text-blue-300">ETH</span>
-                      <span className="text-blue-400 font-bold">150.5 ETH</span>
-                    </div>
-                    <div className="flex justify-between p-3 bg-green-800/20 rounded-lg">
-                      <span className="text-green-300">USDC</span>
-                      <span className="text-green-400 font-bold">$500,000 USDC</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-white font-semibold text-lg">📊 Recent Transactions</h3>
-                  <div className="space-y-2">
-                    {[
-                      { type: "Reward Distribution", amount: "-50,000 $LUM", date: "2024-01-28" },
-                      { type: "Partnership Payment", amount: "-25 ETH", date: "2024-01-25" },
-                      { type: "Development Fund", amount: "-$100,000 USDC", date: "2024-01-20" },
-                    ].map((tx, index) => (
-                      <div key={index} className="flex justify-between p-2 bg-purple-800/20 rounded text-sm">
-                        <span className="text-purple-300">{tx.type}</span>
-                        <div className="text-right">
-                          <div className="text-red-400">{tx.amount}</div>
-                          <div className="text-purple-400 text-xs">{tx.date}</div>
-                        </div>
+              <div className="space-y-4">
+                {proposals
+                  .filter((p) => p.status !== "active")
+                  .map((proposal) => (
+                    <div key={proposal.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                      <div>
+                        <div className="text-white font-semibold">{proposal.title}</div>
+                        <div className="text-white/60 text-sm">By {proposal.proposer}</div>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                      <Badge className={`${getStatusColor(proposal.status)} flex items-center gap-1`}>
+                        {getStatusIcon(proposal.status)}
+                        {proposal.status}
+                      </Badge>
+                    </div>
+                  ))}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Create Proposal Modal */}
+      {showCreateProposal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-2xl bg-white/10 border-white/20 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-white">Create New Proposal</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="title" className="text-white">
+                  Title
+                </Label>
+                <Input
+                  id="title"
+                  value={newProposal.title}
+                  onChange={(e) => setNewProposal({ ...newProposal, title: e.target.value })}
+                  className="bg-white/10 border-white/20 text-white"
+                  placeholder="Enter proposal title..."
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="category" className="text-white">
+                  Category
+                </Label>
+                <Select
+                  value={newProposal.category}
+                  onValueChange={(value) => setNewProposal({ ...newProposal, category: value })}
+                >
+                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="game-features">Game Features</SelectItem>
+                    <SelectItem value="tokenomics">Tokenomics</SelectItem>
+                    <SelectItem value="nft-rewards">NFT & Rewards</SelectItem>
+                    <SelectItem value="governance">Governance</SelectItem>
+                    <SelectItem value="community">Community</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="description" className="text-white">
+                  Description
+                </Label>
+                <Textarea
+                  id="description"
+                  value={newProposal.description}
+                  onChange={(e) => setNewProposal({ ...newProposal, description: e.target.value })}
+                  className="bg-white/10 border-white/20 text-white min-h-[100px]"
+                  placeholder="Describe your proposal in detail..."
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleCreateProposal}
+                  disabled={!newProposal.title || !newProposal.description || !newProposal.category}
+                  className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                >
+                  Create Proposal (Cost: 10 $LUM)
+                </Button>
+                <Button
+                  onClick={() => setShowCreateProposal(false)}
+                  variant="outline"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

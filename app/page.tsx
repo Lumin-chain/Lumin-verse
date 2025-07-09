@@ -11,6 +11,7 @@ import WordSearchGame from "@/components/games/word-search-game"
 import MatchGame from "@/components/games/match-game"
 import LogicCircuitGame from "@/components/games/logic-circuit-game"
 import TriviaGame from "@/components/games/trivia-game"
+import LevelSelector from "@/components/level-selector"
 import WalletConnect from "@/components/wallet-connect"
 import TokenDashboard from "@/components/token-dashboard"
 import NFTMarketplace from "@/components/nft-marketplace"
@@ -22,6 +23,7 @@ import ParticleBackground from "@/components/particle-background"
 import SoundManager from "@/components/sound-manager"
 import { useSound } from "@/hooks/use-sound"
 import { useAchievements } from "@/hooks/use-achievements"
+import { useGameLevels } from "@/hooks/use-game-levels"
 
 interface GameStats {
   totalPoints: number
@@ -34,6 +36,8 @@ interface GameStats {
 
 export default function LuminApp() {
   const [activeGame, setActiveGame] = useState<string | null>(null)
+  const [selectedLevel, setSelectedLevel] = useState<number>(1)
+  const [showLevelSelector, setShowLevelSelector] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
   const [showTutorial, setShowTutorial] = useState(false)
   const [tutorialGame, setTutorialGame] = useState<string>("")
@@ -49,6 +53,7 @@ export default function LuminApp() {
 
   const { playSound } = useSound()
   const { checkAchievements, newAchievements } = useAchievements()
+  const { completeLevel, shouldMintNFT, getTotalProgress } = useGameLevels()
 
   // Mobile detection
   useEffect(() => {
@@ -118,17 +123,35 @@ export default function LuminApp() {
     },
   ]
 
-  const handleGameComplete = (gameId: string, score: number, timeElapsed: number) => {
-    const basePoints = 100
-    const timeBonus = Math.max(0, 300 - timeElapsed)
-    const totalPoints = basePoints + timeBonus
-    const lumEarned = totalPoints * 0.01
-
+  const handleGameComplete = (gameId: string, score: number, timeElapsed: number, level: number) => {
     playSound("gameComplete")
 
+    // Complete the level in the progress system
+    completeLevel(gameId, level, score)
+
+    // Check for NFT minting
+    const nftResult = shouldMintNFT(gameId, level)
+    if (nftResult.shouldMint) {
+      playSound("achievement")
+      setUserStats((prev) => ({
+        ...prev,
+        nftsOwned: prev.nftsOwned + 1,
+        lumTokens: prev.lumTokens + nftResult.nftValue,
+      }))
+
+      // Show special celebration for NFT minting
+      if (nftResult.grade === 5) {
+        console.log("🎨 Grade 5 NFT Minted! +3000 $LUM")
+      } else if (nftResult.grade === 10) {
+        console.log("👑 Grade 10 Legendary NFT Minted! +6000 $LUM")
+      }
+    }
+
+    // Update user stats
+    const lumEarned = score * 0.01
     const newStats = {
       ...userStats,
-      totalPoints: userStats.totalPoints + totalPoints,
+      totalPoints: userStats.totalPoints + score,
       lumTokens: userStats.lumTokens + lumEarned,
       puzzlesSolved: userStats.puzzlesSolved + 1,
       streak: userStats.streak + 1,
@@ -136,18 +159,39 @@ export default function LuminApp() {
 
     setUserStats(newStats)
     checkAchievements(newStats, gameId)
-    setActiveGame(null)
+
+    // Return to level selector
+    setTimeout(() => {
+      setActiveGame(null)
+      setShowLevelSelector(true)
+    }, 2000)
   }
 
   const handleGameStart = (gameId: string) => {
     playSound("gameStart")
     setActiveGame(gameId)
+    setShowLevelSelector(true)
+  }
+
+  const handleLevelSelect = (level: number) => {
+    setSelectedLevel(level)
+    setShowLevelSelector(false)
   }
 
   const handleTutorialStart = (gameId: string) => {
     playSound("buttonClick")
     setTutorialGame(gameId)
     setShowTutorial(true)
+  }
+
+  const handleBackToMenu = () => {
+    setActiveGame(null)
+    setShowLevelSelector(false)
+    setSelectedLevel(1)
+  }
+
+  const handleBackToLevelSelect = () => {
+    setShowLevelSelector(true)
   }
 
   if (showTutorial) {
@@ -158,16 +202,36 @@ export default function LuminApp() {
         onComplete={() => {
           setShowTutorial(false)
           setActiveGame(tutorialGame)
+          setShowLevelSelector(true)
         }}
         onSkip={() => {
           setShowTutorial(false)
           setActiveGame(tutorialGame)
+          setShowLevelSelector(true)
         }}
       />
     )
   }
 
-  if (activeGame) {
+  if (activeGame && showLevelSelector) {
+    const game = games.find((g) => g.id === activeGame)
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
+        <ParticleBackground />
+        <SoundManager />
+        <div className="container mx-auto p-2 md:p-4 relative z-10">
+          <LevelSelector
+            gameId={activeGame}
+            gameName={game?.name || "Game"}
+            onLevelSelect={handleLevelSelect}
+            onBack={handleBackToMenu}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  if (activeGame && !showLevelSelector) {
     const game = games.find((g) => g.id === activeGame)
     if (game) {
       const GameComponent = game.component
@@ -178,16 +242,6 @@ export default function LuminApp() {
 
           <div className="container mx-auto p-2 md:p-4 relative z-10">
             <div className="flex flex-col md:flex-row items-center justify-between mb-4 md:mb-6 gap-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  playSound("buttonClick")
-                  setActiveGame(null)
-                }}
-                className="bg-purple-900/50 border-purple-400/50 text-purple-100 hover:bg-purple-800/50 backdrop-blur-sm w-full md:w-auto"
-              >
-                🚀 Back to Galaxy
-              </Button>
               <div className="flex items-center gap-2 md:gap-4 text-white text-sm md:text-base">
                 <div className="flex items-center gap-1 md:gap-2 bg-yellow-500/20 px-2 md:px-3 py-1 rounded-full backdrop-blur-sm">
                   <span className="text-yellow-400">💰</span>
@@ -199,12 +253,18 @@ export default function LuminApp() {
                 </div>
               </div>
             </div>
-            <GameComponent onComplete={(score: number, time: number) => handleGameComplete(activeGame, score, time)} />
+            <GameComponent
+              level={selectedLevel}
+              onComplete={(score: number, time: number) => handleGameComplete(activeGame, score, time, selectedLevel)}
+              onBack={handleBackToLevelSelect}
+            />
           </div>
         </div>
       )
     }
   }
+
+  const totalProgress = getTotalProgress()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
@@ -369,6 +429,33 @@ export default function LuminApp() {
               </Card>
             </div>
 
+            {/* Overall Progress */}
+            <Card className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/30 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-3">
+                  <span className="text-2xl">🌌</span>
+                  <span>Galaxy Progress</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between text-white mb-2">
+                  <span>Total Levels Completed</span>
+                  <span className="text-green-400">
+                    {totalProgress.completed}/{totalProgress.total}
+                  </span>
+                </div>
+                <div className="w-full bg-white/10 rounded-full h-3">
+                  <div
+                    className="bg-gradient-to-r from-green-400 to-blue-500 h-3 rounded-full transition-all duration-500"
+                    style={{ width: `${(totalProgress.completed / totalProgress.total) * 100}%` }}
+                  />
+                </div>
+                <div className="text-center text-white/70 text-sm mt-2">
+                  {Math.round((totalProgress.completed / totalProgress.total) * 100)}% Complete
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Games Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {games.map((game) => (
@@ -488,26 +575,17 @@ export default function LuminApp() {
                     key={player.rank}
                     className="flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-purple-800/20 rounded-lg border border-purple-500/20 hover:bg-purple-700/30 transition-all"
                   >
-                    <div className="text-2xl md:text-3xl font-bold text-yellow-400">#{player.rank}</div>
-                    <div className="text-2xl md:text-3xl">{player.badge}</div>
-                    <Avatar className="border-2 border-purple-400 w-8 h-8 md:w-10 md:h-10">
-                      <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-lg md:text-xl">
+                    <div className="text-lg md:text-xl font-bold text-yellow-400">#{player.rank}</div>
+                    <Avatar className="w-8 h-8 md:w-10 md:h-10">
+                      <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-lg md:text-xl">
                         {player.avatar}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 text-white">
-                      <div className="font-semibold flex items-center gap-2 text-sm md:text-base">
-                        {player.name}
-                        {player.name === "You" && <span className="text-base md:text-lg">🎯</span>}
-                      </div>
-                      <div className="text-xs md:text-sm text-purple-300 flex items-center gap-1">
-                        <span>⭐</span>
-                        {player.points.toLocaleString()} points
-                      </div>
+                    <div className="flex-1">
+                      <div className="text-white font-semibold text-sm md:text-base">{player.name}</div>
+                      <div className="text-purple-300 text-xs md:text-sm">{player.points} points</div>
                     </div>
-                    {player.name === "You" && (
-                      <Badge className="bg-green-500 text-white font-bold text-xs md:text-sm">You! 🎉</Badge>
-                    )}
+                    <div className="text-lg md:text-xl">{player.badge}</div>
                   </div>
                 ))}
               </CardContent>

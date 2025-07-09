@@ -1,64 +1,66 @@
 "use client"
 
-import { useEffect } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { Volume2, VolumeX } from "lucide-react"
 
 export default function SoundManager() {
   const [isMuted, setIsMuted] = useState(false)
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    // Preload sounds
-    const sounds = {
-      backgroundMusic: "/sounds/space-ambient.mp3",
-      gameStart: "/sounds/game-start.mp3",
-      gameComplete: "/sounds/game-complete.mp3",
-      buttonClick: "/sounds/button-click.mp3",
-      achievement: "/sounds/achievement.mp3",
-      notification: "/sounds/notification.mp3",
+    // Preload audio files
+    const audioFiles = [
+      "/sounds/background-music.mp3",
+      "/sounds/button-click.mp3",
+      "/sounds/game-start.mp3",
+      "/sounds/game-complete.mp3",
+      "/sounds/achievement.mp3",
+      "/sounds/level-up.mp3",
+      "/sounds/nft-mint.mp3",
+    ]
+
+    const preloadAudio = async () => {
+      try {
+        await Promise.all(
+          audioFiles.map((src) => {
+            return new Promise((resolve, reject) => {
+              const audio = new Audio(src)
+              audio.addEventListener("canplaythrough", resolve)
+              audio.addEventListener("error", reject)
+              audio.load()
+            })
+          }),
+        )
+        setIsLoaded(true)
+      } catch (error) {
+        console.log("Audio preloading failed:", error)
+        setIsLoaded(true) // Continue without audio
+      }
     }
 
-    // Create audio elements
-    Object.entries(sounds).forEach(([key, src]) => {
-      const audio = new Audio(src)
-      audio.preload = "auto"
-      audio.volume = key === "backgroundMusic" ? 0.3 : 0.5
-      if (key === "backgroundMusic") {
-        audio.loop = true
-      }
-      // Store in global object for access
-      ;(window as any).sounds = (window as any).sounds || {}
-      ;(window as any).sounds[key] = audio
-    })
+    preloadAudio()
 
-    setIsLoaded(true)
-
-    // Start background music
-    if (!isMuted) {
-      setTimeout(() => {
-        const bgMusic = (window as any).sounds?.backgroundMusic
-        if (bgMusic) {
-          bgMusic.play().catch(() => {
-            // Auto-play blocked, will need user interaction
-          })
-        }
-      }, 1000)
+    // Load mute preference
+    const savedMute = localStorage.getItem("lumin-sound-muted")
+    if (savedMute) {
+      setIsMuted(JSON.parse(savedMute))
     }
   }, [])
 
   const toggleMute = () => {
     const newMuted = !isMuted
     setIsMuted(newMuted)
+    localStorage.setItem("lumin-sound-muted", JSON.stringify(newMuted))
 
-    if ((window as any).sounds) {
-      Object.values((window as any).sounds).forEach((audio: any) => {
-        audio.muted = newMuted
-      })
-    }
+    // Stop all currently playing audio
+    const audioElements = document.querySelectorAll("audio")
+    audioElements.forEach((audio) => {
+      if (newMuted) {
+        audio.pause()
+      }
+    })
   }
-
-  if (!isLoaded) return null
 
   return (
     <div className="fixed top-4 right-4 z-50">
@@ -67,8 +69,9 @@ export default function SoundManager() {
         size="icon"
         onClick={toggleMute}
         className="bg-purple-900/50 border-purple-400/50 text-purple-100 hover:bg-purple-800/50 backdrop-blur-sm"
+        title={isMuted ? "Unmute sounds" : "Mute sounds"}
       >
-        {isMuted ? "🔇" : "🔊"}
+        {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
       </Button>
     </div>
   )

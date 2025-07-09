@@ -1,5 +1,5 @@
 {
-  "name": "my-v0-project",
+  "name": "lumin-puzzleverse",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,6 +11,7 @@
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
     "@nomiclabs/hardhat-ethers": "latest",
+    "@nomiclabs/hardhat-waffle": "latest",
     "@radix-ui/react-accordion": "latest",
     "@radix-ui/react-alert-dialog": "latest",
     "@radix-ui/react-aspect-ratio": "latest",
@@ -38,12 +39,15 @@
     "@radix-ui/react-toggle": "latest",
     "@radix-ui/react-toggle-group": "latest",
     "@radix-ui/react-tooltip": "latest",
+    "@types/sinon-chai": "latest",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "latest",
     "date-fns": "4.1.0",
+    "dotenv": "latest",
     "embla-carousel-react": "latest",
+    "ethereum-waffle": "latest",
     "ethers": "latest",
     "hardhat": "latest",
     "input-otp": "latest",

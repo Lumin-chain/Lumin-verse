@@ -8,10 +8,9 @@ interface Particle {
   vx: number
   vy: number
   size: number
-  color: string
+  opacity: number
   type: "star" | "planet" | "comet"
-  rotation: number
-  rotationSpeed: number
+  color: string
 }
 
 export default function ParticleBackground() {
@@ -44,86 +43,57 @@ export default function ParticleBackground() {
           vy: (Math.random() - 0.5) * 0.5,
           size:
             type === "star" ? Math.random() * 2 + 1 : type === "planet" ? Math.random() * 4 + 2 : Math.random() * 3 + 1,
-          color:
-            type === "star"
-              ? ["#FFD700", "#FFF", "#87CEEB", "#DDA0DD"][Math.floor(Math.random() * 4)]
-              : type === "planet"
-                ? ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7"][Math.floor(Math.random() * 5)]
-                : "#FF69B4",
+          opacity: Math.random() * 0.8 + 0.2,
           type,
-          rotation: 0,
-          rotationSpeed: (Math.random() - 0.5) * 0.02,
+          color: type === "star" ? "#FFD700" : type === "planet" ? "#4A90E2" : "#FF6B6B",
         })
       }
       particlesRef.current = particles
-    }
-
-    const drawParticle = (particle: Particle) => {
-      ctx.save()
-      ctx.translate(particle.x, particle.y)
-      ctx.rotate(particle.rotation)
-
-      switch (particle.type) {
-        case "star":
-          ctx.fillStyle = particle.color
-          ctx.shadowBlur = 10
-          ctx.shadowColor = particle.color
-          ctx.beginPath()
-          for (let i = 0; i < 5; i++) {
-            const angle = (i * Math.PI * 2) / 5
-            const x = Math.cos(angle) * particle.size
-            const y = Math.sin(angle) * particle.size
-            if (i === 0) ctx.moveTo(x, y)
-            else ctx.lineTo(x, y)
-          }
-          ctx.closePath()
-          ctx.fill()
-          break
-
-        case "planet":
-          const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, particle.size)
-          gradient.addColorStop(0, particle.color)
-          gradient.addColorStop(1, "rgba(0,0,0,0.3)")
-          ctx.fillStyle = gradient
-          ctx.beginPath()
-          ctx.arc(0, 0, particle.size, 0, Math.PI * 2)
-          ctx.fill()
-          break
-
-        case "comet":
-          ctx.strokeStyle = particle.color
-          ctx.lineWidth = 2
-          ctx.shadowBlur = 15
-          ctx.shadowColor = particle.color
-          ctx.beginPath()
-          ctx.moveTo(-particle.size * 3, 0)
-          ctx.lineTo(particle.size, 0)
-          ctx.stroke()
-          ctx.fillStyle = particle.color
-          ctx.beginPath()
-          ctx.arc(particle.size, 0, particle.size / 2, 0, Math.PI * 2)
-          ctx.fill()
-          break
-      }
-
-      ctx.restore()
     }
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
       particlesRef.current.forEach((particle) => {
+        // Update position
         particle.x += particle.vx
         particle.y += particle.vy
-        particle.rotation += particle.rotationSpeed
 
         // Wrap around screen
-        if (particle.x < -10) particle.x = canvas.width + 10
-        if (particle.x > canvas.width + 10) particle.x = -10
-        if (particle.y < -10) particle.y = canvas.height + 10
-        if (particle.y > canvas.height + 10) particle.y = -10
+        if (particle.x < 0) particle.x = canvas.width
+        if (particle.x > canvas.width) particle.x = 0
+        if (particle.y < 0) particle.y = canvas.height
+        if (particle.y > canvas.height) particle.y = 0
 
-        drawParticle(particle)
+        // Draw particle
+        ctx.save()
+        ctx.globalAlpha = particle.opacity
+        ctx.fillStyle = particle.color
+
+        if (particle.type === "star") {
+          ctx.beginPath()
+          ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+          ctx.fill()
+        } else if (particle.type === "planet") {
+          ctx.beginPath()
+          ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.strokeStyle = particle.color
+          ctx.lineWidth = 1
+          ctx.stroke()
+        } else {
+          // Comet with tail
+          ctx.beginPath()
+          ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.beginPath()
+          ctx.moveTo(particle.x, particle.y)
+          ctx.lineTo(particle.x - particle.vx * 10, particle.y - particle.vy * 10)
+          ctx.strokeStyle = particle.color
+          ctx.lineWidth = 2
+          ctx.stroke()
+        }
+        ctx.restore()
       })
 
       animationRef.current = requestAnimationFrame(animate)
@@ -146,7 +116,5 @@ export default function ParticleBackground() {
     }
   }, [])
 
-  return (
-    <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0" style={{ background: "transparent" }} />
-  )
+  return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }} />
 }
